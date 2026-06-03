@@ -34,7 +34,7 @@ if (fs.existsSync(dist)) {
 app.listen(PORT, () => {
   const hasKey = !!process.env.ANTHROPIC_API_KEY;
   const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
-  console.log(`\n  🎬 Retro Pictures API on http://localhost:${PORT}`);
+  console.log(`\n  🎬 Core Blue Pictures API on http://localhost:${PORT}`);
   console.log(`     Model: ${model}`);
   console.log(hasKey ? "     API key: loaded ✓\n" : "     API key: MISSING — add it to .env\n");
 });
