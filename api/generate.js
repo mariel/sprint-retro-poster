@@ -10,8 +10,8 @@ export default async function handler(req, res) {
   }
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
-    const ai = await generateFlavor(body.fields || {});
-    res.status(200).json({ ai });
+    const poster = await generateFlavor(body.fields || {});
+    res.status(200).json(poster);
   } catch (e) {
     res.status(e.statusCode || 500).json({ error: e.message, detail: e.detail });
   }

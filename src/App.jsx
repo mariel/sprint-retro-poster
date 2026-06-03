@@ -3,19 +3,68 @@ import { GENRES } from "./genres.js";
 import { buildPoster } from "./poster.js";
 
 /* AI fallback so the poster always renders, even if the API call fails. */
-function fallbackAI(f) {
+function castBilling(f) {
+  const cast = (f.cast || [])
+    .filter((c) => c && c.name && c.name.trim())
+    .map((c) => c.name.trim() + (c.role && c.role.trim() ? ` (${c.role.trim()})` : ""))
+    .join(" • ");
+  return cast || "The ensemble cast";
+}
+
+function fallbackPosterPayload(f) {
   return {
-    tagline: f.tagline || "Two weeks. One team. No do-overs.",
-    criticQuotes: [
-      { quote: "A standup triumph.", source: "The Daily Standup" },
-      { quote: "You'll laugh, you'll refactor.", source: "Velocity Weekly" },
-    ],
-    rating: "Rated S",
-    runtime: "One Sprint",
-    billingBlock:
-      "RETRO PICTURES presents " +
-      (f.title || "A SPRINT") +
-      " — produced by the team, for the team. No tickets were harmed beyond their original estimates.",
+    ai: {
+      tagline: f.tagline || "Two weeks. One team. No do-overs.",
+      criticQuotes: [
+        { quote: "A standup triumph.", source: "The Daily Standup" },
+        { quote: "You'll laugh, you'll refactor.", source: "Velocity Weekly" },
+      ],
+      rating: "Rated S (for shipping drama)",
+      runtime: "2 Weeks · One Sprint",
+      billingBlock:
+        "CORE BLUE STUDIOS presents " +
+        (f.title || "A SPRINT") +
+        " - produced by the team, for the team, with zero calm standups and maximum delivery drama.",
+      concept: {
+        posterHook: f.tagline || "One sprint. One deadline. No clean takes.",
+        titleTreatment: "bold, high-stakes, midnight-blue blockbuster",
+        castBilling: castBilling(f),
+        visualConcept: `A cinematic ${f.genre || "drama"} team poster about ${f.conflict || "mounting sprint pressure"} transforming into ${f.climax || "a hard-won team victory"}.`,
+        highlightMoments: [
+          f.conflict || "Act II pressure spike",
+          f.climax || "Impossible ship lands",
+          f.postCredits || "Sequel sets a better habit",
+        ],
+        artPrompt: `Cinematic portrait movie poster key art for "${f.title || "Untitled Sprint"}" with ${castBilling(f)} navigating ${f.conflict || "a tense sprint obstacle"} and emerging into ${f.climax || "a hard-won team victory"}.`,
+      },
+    },
+    assets: {},
+  };
+}
+
+function mergePosterPayload(base, incoming) {
+  const next = incoming && typeof incoming === "object" ? incoming : {};
+  const nextAI = next.ai && typeof next.ai === "object" ? next.ai : {};
+  const nextConcept = nextAI.concept && typeof nextAI.concept === "object" ? nextAI.concept : {};
+
+  return {
+    ai: {
+      ...base.ai,
+      ...nextAI,
+      criticQuotes: Array.isArray(nextAI.criticQuotes) && nextAI.criticQuotes.length ? nextAI.criticQuotes : base.ai.criticQuotes,
+      concept: {
+        ...base.ai.concept,
+        ...nextConcept,
+        highlightMoments:
+          Array.isArray(nextConcept.highlightMoments) && nextConcept.highlightMoments.length
+            ? nextConcept.highlightMoments
+            : base.ai.concept.highlightMoments,
+      },
+    },
+    assets: {
+      ...base.assets,
+      ...(next.assets && typeof next.assets === "object" ? next.assets : {}),
+    },
   };
 }
 
@@ -41,11 +90,11 @@ export default function App() {
   async function generate() {
     if (!f.title.trim()) { setErr("Give your sprint a title — every movie needs one."); return; }
     setErr(""); setStep("generating");
-    const msgs = ["Casting the leads…", "Color grading the footage…", "Test screening for critics…", "Printing the one-sheet…"];
+    const msgs = ["Casting the leads…", "Blocking the hero shot…", "Punching up the campaign copy…", "Printing the one-sheet…"];
     let mi = 0; setLoadingMsg(msgs[0]);
     const ticker = setInterval(() => { mi = (mi + 1) % msgs.length; setLoadingMsg(msgs[mi]); }, 1400);
 
-    let ai = fallbackAI(f);
+    let posterData = fallbackPosterPayload(f);
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -54,17 +103,14 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data && data.ai) {
-          ai = { ...ai, ...data.ai };
-          if (!Array.isArray(ai.criticQuotes) || !ai.criticQuotes.length) ai.criticQuotes = fallbackAI(f).criticQuotes;
-        }
+        posterData = mergePosterPayload(posterData, data);
       }
     } catch (e) {
       // keep fallback; poster still renders
     } finally {
       clearInterval(ticker);
     }
-    setPoster(buildPoster(f, ai));
+    setPoster(buildPoster(f, posterData.ai, posterData.assets));
     setStep("poster");
   }
 
@@ -82,6 +128,10 @@ export default function App() {
       a.download = (f.title || "sprint-retro").replace(/[^a-z0-9]+/gi, "-").toLowerCase() + "-poster.png";
       a.href = c.toDataURL("image/png");
       a.click();
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      setErr("Poster export failed. Try generating it one more time.");
     };
     img.src = url;
   }
@@ -114,8 +164,8 @@ export default function App() {
       <style dangerouslySetInnerHTML={{ __html: "*::placeholder{color:#6f88ad} input:focus{border-color:#63afff!important;box-shadow:0 0 0 1px rgba(99,175,255,0.2)} @keyframes spin{to{transform:rotate(360deg)}}" }} />
       <div style={S.shell}>
         <div style={S.kicker}>🎬 Core Blue Studios</div>
-        <h1 style={S.h1}>Sprint Retro: The Movie</h1>
-        <p style={S.sub}>Turn your retrospective into a movie poster. Fill the studio sheet, and the AI writes the critic blurbs, rating &amp; billing block — then prints a poster you can drop in the team channel.</p>
+        <h1 style={S.h1}>Sprint 11 Retro: The Movie</h1>
+        <p style={S.sub}>Turn your retrospective into a movie poster. Fill the studio sheet, and the AI shapes the campaign copy, story beats, and hero shot into a poster you can drop in the team channel.</p>
 
         {step === "form" && (
           <>
@@ -164,7 +214,7 @@ export default function App() {
                 <input style={S.input} value={f.climax} placeholder="e.g. 100% code coverage" onChange={(e) => up("climax", e.target.value)} />
               </div>
               <div style={S.field}>
-                <label style={S.label}>Post-Credits Scene <span style={S.hint}>· the ONE thing to carry into next sprint</span></label>
+                <label style={S.label}>Post-Credits Scene <span style={S.hint}>· something to improve for next sprint</span></label>
                 <input style={S.input} value={f.postCredits} placeholder="e.g. better vibes" onChange={(e) => up("postCredits", e.target.value)} />
               </div>
             </div>

@@ -17,8 +17,8 @@ const PORT = process.env.PORT || 3001;
 
 app.post("/api/generate", async (req, res) => {
   try {
-    const ai = await generateFlavor(req.body && req.body.fields);
-    res.json({ ai });
+    const poster = await generateFlavor(req.body && req.body.fields);
+    res.json(poster);
   } catch (e) {
     res.status(e.statusCode || 500).json({ error: e.message, detail: e.detail });
   }
@@ -32,9 +32,15 @@ if (fs.existsSync(dist)) {
 }
 
 app.listen(PORT, () => {
-  const hasKey = !!process.env.ANTHROPIC_API_KEY;
-  const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
+  const provider = (process.env.LLM_PROVIDER || (process.env.OPENAI_API_KEY ? "openai" : "anthropic")).toLowerCase();
+  const model = provider === "openai"
+    ? (process.env.OPENAI_MODEL || "gpt-4o-mini")
+    : (process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6");
+  const hasKey = provider === "openai" ? !!process.env.OPENAI_API_KEY : !!process.env.ANTHROPIC_API_KEY;
+  const imageModel = process.env.OPENAI_IMAGE_MODEL || "disabled";
   console.log(`\n  🎬 Core Blue Pictures API on http://localhost:${PORT}`);
+  console.log(`     Provider: ${provider}`);
   console.log(`     Model: ${model}`);
+  console.log(`     Hero art: ${imageModel}`);
   console.log(hasKey ? "     API key: loaded ✓\n" : "     API key: MISSING — add it to .env\n");
 });
