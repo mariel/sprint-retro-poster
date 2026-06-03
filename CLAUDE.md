@@ -59,11 +59,20 @@ Add one entry to `GENRES` in `src/genres.js`. `motif` must be one of:
 `sunburst | grid | fog | spotlight | explosion | bokeh` (defined in `motifArt()`
 in `poster.js`). Add a new motif there if you want a new background style.
 
-## Model
+## Model / provider
 
-Default model is `claude-sonnet-4-6`, overridable via `ANTHROPIC_MODEL` in `.env`.
-For this lightweight copy task `claude-haiku-4-5` is cheaper/faster. Verify current
-model IDs at https://platform.claude.com/docs/en/about-claude/models/overview
+`lib/generate.js` supports **OpenAI and Anthropic**. It picks via `pickProvider()`:
+`LLM_PROVIDER=openai|anthropic` forces one; otherwise it auto-detects (OpenAI if
+`OPENAI_API_KEY` is present, else Anthropic). OpenAI uses Chat Completions with
+`response_format: { type: "json_object" }`; Anthropic uses the Messages API. Both
+go through `buildPrompt()` (which already asks for JSON-only output) and
+`parseJsonLoose()`. Defaults: OpenAI `gpt-4o-mini`, Anthropic `claude-sonnet-4-6`
+(override with `OPENAI_MODEL` / `ANTHROPIC_MODEL`). Verify current model IDs at
+https://platform.openai.com/docs/models and
+https://platform.claude.com/docs/en/about-claude/models/overview
+
+To add another provider, add a `callX()` function in `lib/generate.js` and a branch
+in `pickProvider()` / `generateFlavor()` — nothing else in the app needs to change.
 
 ## Commands
 

@@ -21,16 +21,24 @@ The form maps to a real scrum retro:
 
 ## Quick start
 
-**Prerequisites:** Node.js 18+ and an Anthropic API key (`platform.claude.com` → API Keys).
+**Prerequisites:** Node.js 18+ and an API key from **either** OpenAI or Anthropic.
 
 ```bash
 npm install
-cp .env.example .env        # then paste your key into .env
+cp .env.example .env        # then paste ONE provider's key into .env
 npm run dev
 ```
 
 Open **http://localhost:5173**. The Vite dev server runs the UI and proxies
 `/api` calls to the Express server on port 3001, which holds your API key.
+
+### Which provider?
+
+The backend auto-detects: if `OPENAI_API_KEY` is set it uses OpenAI, otherwise it
+uses `ANTHROPIC_API_KEY`. Force a choice with `LLM_PROVIDER=openai|anthropic`.
+Defaults: OpenAI `gpt-4o-mini`, Anthropic `claude-sonnet-4-6` — both overridable
+(`OPENAI_MODEL` / `ANTHROPIC_MODEL`). The copy task is light, so a cheap/mini
+model is plenty.
 
 ### Production-style run
 
@@ -68,9 +76,9 @@ on Vercel — both share `lib/generate.js`, so there's no duplicated logic.
 2. In Vercel: **New Project → import the repo.** It auto-detects Vite
    (build `vite build`, output `dist`) and deploys `/api` as functions.
    No `vercel.json` needed.
-3. Add an Environment Variable: **`ANTHROPIC_API_KEY`** = your key
-   (optionally `ANTHROPIC_MODEL`). Set it for Production (and Preview if you want
-   PR previews to work), then deploy.
+3. Add an Environment Variable: **`OPENAI_API_KEY`** *or* **`ANTHROPIC_API_KEY`**
+   (optionally `OPENAI_MODEL` / `ANTHROPIC_MODEL`, or `LLM_PROVIDER` to force one).
+   Set it for Production (and Preview if you want PR previews to work), then deploy.
 
 Or from the CLI:
 
@@ -170,6 +178,7 @@ sprint-retro-poster/
 
 ## Notes
 
+- Works with **OpenAI or Anthropic** — set whichever key you have (see "Which provider?").
 - No data is stored; everything lives in memory for the session.
 - If the API call fails, the app falls back to canned copy so the poster still renders.
-- `ANTHROPIC_MODEL` in `.env` swaps the model (try `claude-haiku-4-5` for cheap/fast).
+- Swap models via `OPENAI_MODEL` / `ANTHROPIC_MODEL` in `.env`.
