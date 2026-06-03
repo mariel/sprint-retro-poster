@@ -4,10 +4,14 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Turn a sprint retrospective into an AI-flavored movie poster.",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "concurrently -n server,client -c yellow,cyan \"node server.js\" \"vite\"",
     "dev:server": "node server.js",
     "dev:client": "vite",
+    "dev:vercel": "vercel dev",
     "build": "vite build",
     "start": "node server.js"
   },

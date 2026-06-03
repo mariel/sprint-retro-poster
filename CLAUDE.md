@@ -11,11 +11,17 @@ movie-marketing flavor text, and the app renders a genre-themed poster as SVG.
 ## Stack & architecture
 
 - **Frontend:** React 18 + Vite (`src/`). No component library; styles are inline.
-- **Backend:** a single Express server (`server.js`) that exposes `POST /api/generate`.
-  It holds the Anthropic API key (from `.env`) and proxies the call, so the key
-  is **never** exposed to the browser. In production it also serves the built `dist/`.
+- **Backend (two interchangeable entry points, one shared core):**
+  - `lib/generate.js` — the single source of truth: builds the prompt, calls
+    Anthropic, returns parsed `{ ai }`. Reads `ANTHROPIC_API_KEY` from env.
+  - `server.js` — Express, for local dev (`npm run dev`) and non-serverless hosts
+    (`npm start`, e.g. Render/Railway/Fly). Also serves the built `dist/`.
+  - `api/generate.js` — Vercel serverless function. On Vercel, this is the backend
+    and `server.js` is unused.
+  The key is read server-side in both paths and is **never** exposed to the browser.
 - **Dev:** `npm run dev` runs Express (:3001) and Vite (:5173) together via
-  `concurrently`. Vite proxies `/api` -> :3001 (see `vite.config.js`).
+  `concurrently`. Vite proxies `/api` -> :3001 (see `vite.config.js`). Alternatively
+  `npm run dev:vercel` (`vercel dev`) mirrors the serverless prod setup.
 
 ## Key files
 
@@ -24,7 +30,9 @@ movie-marketing flavor text, and the app renders a genre-themed poster as SVG.
 | `src/App.jsx` | UI, form state, calls `/api/generate`, triggers PNG export |
 | `src/poster.js` | `buildPoster(fields, ai)` returns the poster as an **SVG string** + text/wrap helpers |
 | `src/genres.js` | `GENRES` map — palette + motif per genre (the whole look comes from here) |
-| `server.js` | `/api/generate` -> builds prompt, calls Anthropic, returns parsed JSON `{ ai }` |
+| `lib/generate.js` | shared prompt builder + Anthropic call; throws `Error` with `.statusCode` |
+| `server.js` | Express entry (local dev / non-serverless hosts); imports `lib/generate.js` |
+| `api/generate.js` | Vercel function entry; imports `lib/generate.js` |
 
 ## Important conventions / gotchas
 

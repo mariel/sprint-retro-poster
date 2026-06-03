@@ -54,6 +54,55 @@ npm start       # Express serves dist/ + the API on http://localhost:3001
 
 ---
 
+## Deploying
+
+This repo supports two hosting styles out of the box.
+
+### Vercel (serverless) — recommended
+
+Vercel serves the built frontend from its CDN and runs `api/generate.js` as an
+on-demand serverless function. The Express server (`server.js`) is **not** used
+on Vercel — both share `lib/generate.js`, so there's no duplicated logic.
+
+1. Push this repo to GitHub/GitLab/Bitbucket.
+2. In Vercel: **New Project → import the repo.** It auto-detects Vite
+   (build `vite build`, output `dist`) and deploys `/api` as functions.
+   No `vercel.json` needed.
+3. Add an Environment Variable: **`ANTHROPIC_API_KEY`** = your key
+   (optionally `ANTHROPIC_MODEL`). Set it for Production (and Preview if you want
+   PR previews to work), then deploy.
+
+Or from the CLI:
+
+```bash
+npm i -g vercel
+vercel            # first run links/creates the project
+vercel env add ANTHROPIC_API_KEY     # paste your key
+vercel --prod
+```
+
+To run the serverless setup locally exactly as it runs in prod, use `vercel dev`
+(also available as `npm run dev:vercel`).
+
+> Note: the key lives only in Vercel's server-side env and is read inside the
+> function — it's never shipped to the browser. Don't prefix it with `VITE_`,
+> or it would get bundled into client code.
+
+### Render / Railway / Fly / a VPS (one long-running server)
+
+These run the Express server, which serves the API **and** the built frontend:
+
+```bash
+npm install
+npm run build
+npm start          # serves dist/ + /api on $PORT (default 3001)
+```
+
+Set `ANTHROPIC_API_KEY` in the host's environment. Build command `npm run build`,
+start command `npm start`.
+
+---
+
 ## Working on this with Claude Code
 
 This repo includes a `CLAUDE.md` that gives Claude Code the project context,
@@ -101,9 +150,13 @@ sprint-retro-poster/
 ├── CLAUDE.md            # project memory for Claude Code (read this!)
 ├── README.md
 ├── package.json
-├── vite.config.js       # dev server + /api proxy
+├── vite.config.js       # dev server + /api proxy (local dev only)
 ├── index.html
-├── server.js            # Express: /api/generate (holds the API key) + serves dist/
+├── server.js            # Express: serves /api + dist/ for local dev & non-serverless hosts
+├── api/
+│   └── generate.js      # Vercel serverless function for POST /api/generate
+├── lib/
+│   └── generate.js      # shared: prompt builder + Anthropic call (used by both backends)
 ├── .env.example
 └── src/
     ├── main.jsx         # React entry
